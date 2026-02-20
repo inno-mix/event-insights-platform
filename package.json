@@ -1,0 +1,23 @@
+{
+  "name": "event-insights-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Event Insights Platform — Monolith Canonical System",
+  "scripts": {
+    "dev:api": "pnpm --filter @eip/api run start:dev",
+    "dev:web": "pnpm --filter @eip/web run dev",
+    "build:api": "pnpm --filter @eip/api run build",
+    "build:web": "pnpm --filter @eip/web run build",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "db:generate": "pnpm --filter @eip/api run db:generate",
+    "db:migrate": "pnpm --filter @eip/api run db:migrate",
+    "db:seed": "pnpm --filter @eip/api run db:seed",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
