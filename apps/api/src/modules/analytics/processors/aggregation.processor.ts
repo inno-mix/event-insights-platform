@@ -1,25 +1,33 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { AnalyticsRepository } from '../analytics.repository';
+import { RawEventRepository } from '../repositories/raw-event.repository';
+import { AggregatedMetricRepository } from '../repositories/aggregated-metric.repository';
 
 /**
  * AggregationProcessor — BullMQ worker that runs every 10 minutes.
- * Reads un-aggregated raw events from MongoDB, computes hourly totals,
- * and upserts them into PostgreSQL for sub-second dashboard queries.
+ *
+ * Pipeline:
+ *   1. RawEventRepository.findUnaggregatedEvents()     → reads from MongoDB
+ *   2. Groups events by orgId + eventId + hour
+ *   3. AggregatedMetricRepository.upsertAggregatedMetric() → writes to PostgreSQL
+ *   4. RawEventRepository.markEventsAsAggregated()      → marks in MongoDB
  */
 @Processor('analytics-aggregation')
 export class AggregationProcessor extends WorkerHost {
     private readonly logger = new Logger(AggregationProcessor.name);
 
-    constructor(private readonly analyticsRepository: AnalyticsRepository) {
+    constructor(
+        private readonly rawEventRepo: RawEventRepository,
+        private readonly aggregatedMetricRepo: AggregatedMetricRepository,
+    ) {
         super();
     }
 
     async process(job: Job): Promise<void> {
         this.logger.log(`Starting aggregation job ${job.id}`);
 
-        const rawEvents = await this.analyticsRepository.findUnaggregatedEvents();
+        const rawEvents = await this.rawEventRepo.findUnaggregatedEvents();
 
         if (rawEvents.length === 0) {
             this.logger.log('No events to aggregate');
@@ -69,7 +77,7 @@ export class AggregationProcessor extends WorkerHost {
 
         // Upsert aggregated metrics to PostgreSQL
         for (const [, bucket] of aggregationMap) {
-            await this.analyticsRepository.upsertAggregatedMetric({
+            await this.aggregatedMetricRepo.upsertAggregatedMetric({
                 eventId: bucket.eventId,
                 orgId: bucket.orgId,
                 metricType: 'TOTAL_COUNT',
@@ -78,7 +86,7 @@ export class AggregationProcessor extends WorkerHost {
                 periodEnd: bucket.periodEnd,
             });
 
-            await this.analyticsRepository.upsertAggregatedMetric({
+            await this.aggregatedMetricRepo.upsertAggregatedMetric({
                 eventId: bucket.eventId,
                 orgId: bucket.orgId,
                 metricType: 'UNIQUE_SESSIONS',
@@ -88,9 +96,9 @@ export class AggregationProcessor extends WorkerHost {
             });
         }
 
-        // Mark raw events as aggregated
+        // Mark raw events as aggregated in MongoDB
         const eventIds = rawEvents.map((e) => e._id.toString());
-        await this.analyticsRepository.markEventsAsAggregated(eventIds);
+        await this.rawEventRepo.markEventsAsAggregated(eventIds);
 
         this.logger.log(
             `Aggregation complete: ${rawEvents.length} events → ${aggregationMap.size} buckets`,

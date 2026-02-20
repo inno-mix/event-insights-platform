@@ -10,6 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Tell Prisma where the monorepo root .env lives
+// (relative to this schema file: src/infrastructure/prisma/ → ../../../../.env)
+
+
 // ─── Multi-Tenant Root ───
 model Organization {
   id        String   @id @default(cuid())

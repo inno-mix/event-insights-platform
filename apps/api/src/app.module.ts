@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 
 // ─── Infrastructure ───
@@ -9,6 +9,7 @@ import { MongooseConfigModule } from '@infra/mongoose/mongoose-config.module';
 
 // ─── Shared ───
 import { JwtAuthGuard } from '@shared/guards/jwt-auth.guard';
+import { OrgIdInterceptor } from '@shared/interceptors/org-id.interceptor';
 
 // ─── Domain Modules ───
 import { AuthModule } from '@modules/auth/auth.module';
@@ -53,6 +54,14 @@ import { AnalyticsModule } from '@modules/analytics/analytics.module';
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
+        },
+
+        // ─── Global OrgId Interceptor ───
+        // Extracts x-org-id from headers and attaches it to request.orgId
+        // Runs on every request before guards evaluate tenant context
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: OrgIdInterceptor,
         },
     ],
 })
