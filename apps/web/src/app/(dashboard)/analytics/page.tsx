@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BarChart } from '@/components/charts/bar-chart';
 import { LineChart } from '@/components/charts/line-chart';
 import { MetricCard } from '@/components/charts/metric-card';
@@ -29,16 +29,15 @@ const demoLineData = [
 export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState('7d');
 
-    const getDateRange = () => {
+    const { start, end } = useMemo(() => {
         const end = new Date();
         const start = new Date();
         if (dateRange === '7d') start.setDate(start.getDate() - 7);
         if (dateRange === '30d') start.setDate(start.getDate() - 30);
         if (dateRange === '90d') start.setDate(start.getDate() - 90);
         return { start: start.toISOString(), end: end.toISOString() };
-    };
+    }, [dateRange]);
 
-    const { start, end } = getDateRange();
     const { data: summary } = useMetricsSummary(start, end);
 
     return (

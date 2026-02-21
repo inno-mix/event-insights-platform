@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Activity, Users, MousePointerClick, BarChart3 } from 'lucide-react';
 import { MetricCard } from '@/components/charts/metric-card';
 import { LineChart } from '@/components/charts/line-chart';
@@ -17,14 +18,14 @@ const demoTimeSeries = [
 ];
 
 export default function OverviewPage() {
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
+    const { start, end } = useMemo(() => {
+        const now = new Date();
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+        return { start: startOfDay.toISOString(), end: now.toISOString() };
+    }, []);
 
-    const { data: summary } = useMetricsSummary(
-        startOfDay.toISOString(),
-        now.toISOString(),
-    );
+    const { data: summary } = useMetricsSummary(start, end);
 
     return (
         <div className="space-y-8 animate-fade-in">
