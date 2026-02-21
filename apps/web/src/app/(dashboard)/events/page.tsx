@@ -1,10 +1,11 @@
 'use client';
 
-import { Plus, Zap, MousePointerClick, Eye, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Zap, MousePointerClick, Eye, Settings, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { useEvents } from '@/hooks/use-events';
+import { useEvents, useCreateEvent } from '@/hooks/use-events';
 
 interface EventItem {
     id: string;
@@ -28,14 +29,6 @@ const typeBadgeColors: Record<string, string> = {
     CUSTOM: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
 };
 
-// Demo data — replaced by real API data when backend is running
-const demoEvents: EventItem[] = [
-    { id: '1', name: 'Homepage View', type: 'PAGE_VIEW', description: 'Tracks homepage visits', createdAt: '2026-02-20T10:00:00Z' },
-    { id: '2', name: 'CTA Button Click', type: 'CLICK', description: 'Main call-to-action button', createdAt: '2026-02-20T10:30:00Z' },
-    { id: '3', name: 'Signup Complete', type: 'CONVERSION', description: 'User completed registration', createdAt: '2026-02-20T11:00:00Z' },
-    { id: '4', name: 'Feature Usage', type: 'CUSTOM', description: 'Custom feature tracking', createdAt: '2026-02-20T11:30:00Z' },
-];
-
 const columns = [
     { key: 'name', label: 'Event Name' },
     { key: 'type', label: 'Type' },
@@ -45,10 +38,38 @@ const columns = [
 
 export default function EventsPage() {
     const { data: events } = useEvents();
-    const displayEvents: EventItem[] = events || demoEvents;
+    const { mutateAsync: createEvent, isPending } = useCreateEvent();
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [name, setName] = useState('');
+    const [type, setType] = useState('CUSTOM');
+    const [description, setDescription] = useState('');
+    const [error, setError] = useState('');
+
+    const displayEvents: EventItem[] = events || [];
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!name.trim()) {
+            setError('Event name is required');
+            return;
+        }
+
+        try {
+            await createEvent({ name, type, description });
+            setIsModalOpen(false);
+            setName('');
+            setType('CUSTOM');
+            setDescription('');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to create event');
+        }
+    };
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in relative">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -57,7 +78,7 @@ export default function EventsPage() {
                         Manage your trackable event types
                     </p>
                 </div>
-                <Button variant="primary" size="sm">
+                <Button variant="primary" size="sm" onClick={() => setIsModalOpen(true)}>
                     <span className="flex items-center gap-2">
                         <Plus className="w-4 h-4" />
                         New Event
@@ -75,7 +96,7 @@ export default function EventsPage() {
                         <>
                             <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
-                                    {typeIcons[event.type]}
+                                    {typeIcons[event.type] || typeIcons['CUSTOM']}
                                     <span className="font-medium text-gray-200">
                                         {event.name}
                                     </span>
@@ -83,7 +104,7 @@ export default function EventsPage() {
                             </td>
                             <td className="px-4 py-3">
                                 <span
-                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${typeBadgeColors[event.type]}`}
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${typeBadgeColors[event.type] || typeBadgeColors['CUSTOM']}`}
                                 >
                                     {event.type.replace('_', ' ')}
                                 </span>
@@ -98,6 +119,98 @@ export default function EventsPage() {
                     )}
                 />
             </Card>
+
+            {/* Create Event Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="w-full max-w-md">
+                        <div className="glass-card relative">
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                                title="Close"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="p-6">
+                                <h2 className="text-xl font-bold text-white mb-1">Create New Event</h2>
+                                <p className="text-sm text-gray-400 mb-6">Define a new event to track in your analytics.</p>
+
+                                <form onSubmit={handleCreate} className="space-y-4">
+                                    {error && (
+                                        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Event Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="input-field"
+                                            placeholder="e.g., Homepage View"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Event Type
+                                        </label>
+                                        <select
+                                            value={type}
+                                            onChange={(e) => setType(e.target.value)}
+                                            className="input-field !pr-10 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%24%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-no-repeat bg-[right_1rem_center]"
+                                        >
+                                            <option value="PAGE_VIEW" className="bg-surface">Page View</option>
+                                            <option value="CLICK" className="bg-surface">Click</option>
+                                            <option value="CONVERSION" className="bg-surface">Conversion</option>
+                                            <option value="CUSTOM" className="bg-surface">Custom</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Description <span className="text-gray-500">(Optional)</span>
+                                        </label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="input-field min-h-[100px] resize-y"
+                                            placeholder="Describe what this event tracks..."
+                                        />
+                                    </div>
+
+                                    <div className="pt-2 flex gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="flex-1 bg-surface-overlay/50 border border-white/5"
+                                            onClick={() => setIsModalOpen(false)}
+                                            disabled={isPending}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            variant="primary"
+                                            className="flex-1"
+                                            disabled={isPending}
+                                        >
+                                            {isPending ? 'Creating...' : 'Create Event'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
