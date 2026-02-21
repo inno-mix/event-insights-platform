@@ -18,13 +18,14 @@ const navItems = [
 
 interface SidebarProps {
     currentPath: string;
+    onClose?: () => void;
 }
 
-export function Sidebar({ currentPath }: SidebarProps) {
+export function Sidebar({ currentPath, onClose }: SidebarProps) {
     const { user, logout } = useAuth();
 
     return (
-        <aside className="w-64 h-screen flex flex-col bg-surface-raised border-r border-white/5">
+        <aside className="w-64 h-full flex flex-col bg-surface-raised border-r border-white/5">
             {/* Brand */}
             <div className="p-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
@@ -48,8 +49,8 @@ export function Sidebar({ currentPath }: SidebarProps) {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                                    ? 'bg-brand-600/20 text-brand-400'
-                                    : 'text-gray-400 hover:text-gray-100 hover:bg-surface-overlay'
+                                ? 'bg-brand-600/20 text-brand-400'
+                                : 'text-gray-400 hover:text-gray-100 hover:bg-surface-overlay'
                                 }`}
                         >
                             <Icon className="w-5 h-5" />

@@ -24,7 +24,7 @@ export function BarChart({
     height = 300,
 }: BarChartProps) {
     return (
-        <div className="glass-card p-6">
+        <div className="glass-card p-4 sm:p-6">
             {title && (
                 <h3 className="text-sm font-semibold text-gray-300 mb-4">{title}</h3>
             )}

@@ -71,14 +71,14 @@ export default function EventsPage() {
     return (
         <div className="space-y-8 animate-fade-in relative">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Event Definitions</h1>
                     <p className="text-gray-400 mt-1">
                         Manage your trackable event types
                     </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={() => setIsModalOpen(true)}>
+                <Button variant="primary" size="sm" className="w-full sm:w-auto" onClick={() => setIsModalOpen(true)}>
                     <span className="flex items-center gap-2">
                         <Plus className="w-4 h-4" />
                         New Event
